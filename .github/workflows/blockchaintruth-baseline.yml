@@ -1,0 +1,44 @@
+name: BlockchainTruth legacy frontend build
+
+on:
+  push:
+    branches:
+      - blockchaintruth/baseline
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  legacy-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '16.20.2'
+      - name: Install Yarn Classic
+        run: npm install --global yarn@1.22.22
+      - name: Install locked dependencies
+        run: yarn install --frozen-lockfile --network-timeout 120000
+      - name: Build original visualizer with isolated demo endpoints
+        env:
+          NODE_ENV: production
+          VUE_APP_MODE: development
+          VUE_APP_I18N_LOCALE: en
+          VUE_APP_I18N_FALLBACK_LOCALE: en
+          VUE_APP_SIGN_ADS: 'false'
+          VUE_APP_WS_SERVER: ws://127.0.0.1:8081
+          VUE_APP_REST_API: http://127.0.0.1:8080
+          VUE_APP_WS_SERVER_ETH: ws://127.0.0.1:8081
+          VUE_APP_REST_API_ETH: http://127.0.0.1:8080
+          VUE_APP_MOONHEADS_SERVER: http://127.0.0.1:8080
+          VUE_APP_STORAGE_URL: /static/
+        run: yarn build
+      - name: Publish compiled frontend as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: txstreet-legacy-frontend
+          path: dist/
+          retention-days: 7
