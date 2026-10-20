@@ -1,5 +1,5 @@
-import { installReplayTransport } from "./replay/replay";
 // @ts-nocheck
+import { installReplayTransport } from "./replay/replay";
 import Vue from "vue";
 import i18n from "./i18n";
 import "./assets/scss/main.scss";
