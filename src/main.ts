@@ -1,3 +1,4 @@
+import { installReplayTransport } from "./replay/replay";
 // @ts-nocheck
 import Vue from "vue";
 import i18n from "./i18n";
@@ -54,6 +55,8 @@ Vue.use(Toast, {
 		},
 	},
 });
+installReplayTransport();
+
 window.mainVue = new Vue({
 	i18n,
 	el: "#vue-main",
