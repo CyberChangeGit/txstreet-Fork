@@ -69,6 +69,10 @@ async function run() {
     fs.writeFileSync(path.join(output, "diagnostics.json"), JSON.stringify({ dimensions, sceneState, errors }, null, 2));
     assert(dimensions.width >= 320 && dimensions.height >= 320, "Canvas dimensions are too small");
     assert.strictEqual(errors.length, 0, errors.join("\n"));
+    const active = sceneState.streets.filter(s => s.ticker === "BTC" || s.ticker === "ETH");
+    assert.strictEqual(active.length, 2, "Expected both Bitcoin and Ethereum scenes");
+    assert(active.every(s => s.blocks >= 3), "Expected historical replay blocks in both scenes");
+    assert(active.every(s => s.pending >= 10), "Expected synthetic pending transactions in both scenes");
     console.log("Browser render smoke test passed.", JSON.stringify({ dimensions, sceneState }));
   } finally {
     if (browser) await browser.close();
