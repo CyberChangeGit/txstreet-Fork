@@ -1,3 +1,4 @@
+import { replayEnabled } from "../replay/replay";
 import Phaser from "phaser";
 import { config, enabledConfig, userSettings, moonheadNames } from "./config.js";
 import { toRes, resetNeededRooms, getSheetKey } from "./utils/";
@@ -112,11 +113,14 @@ export class StreetController extends Phaser.Scene {
 			this.pause();
 		});
 
-		let tutorialDone = localStorage.getItem("tutorialDone");
-		if (tutorialDone === null) {
-			this.createTutorial();
-		} else {
-			this.createLedgerTimeout();
+		// Suppress the legacy onboarding and hardware-wallet promotions in replay mode.
+		if (!replayEnabled) {
+			let tutorialDone = localStorage.getItem("tutorialDone");
+			if (tutorialDone === null) {
+				this.createTutorial();
+			} else {
+				this.createLedgerTimeout();
+			}
 		}
 		window.mainVue.getVizTitleFromStreets(true, true);
 	}
