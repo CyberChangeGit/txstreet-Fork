@@ -1,4 +1,4 @@
-import { replayEnabled, createReplaySocket } from "../replay/replay";
+import { replayEnabled, createReplaySocket } from "../../replay/replay";
 import { config, moonheadNames, additionalSheets, enabledConfig } from "../config.js";
 import { fds, default as i18n } from "../../i18n";
 import { add } from "date-fns";
