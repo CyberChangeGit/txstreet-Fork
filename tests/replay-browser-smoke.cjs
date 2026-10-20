@@ -51,11 +51,25 @@ async function run() {
     await page.waitForSelector("canvas", { timeout: 45000 });
     await page.waitForTimeout(7000);
     const dimensions = await page.locator("canvas").first().evaluate(c => ({ width: c.width, height: c.height }));
+    const sceneState = await page.evaluate(() => {
+      const game = window.txStreetPhaser;
+      const controller = game && game.streetController;
+      const streets = controller ? ["left", "right", "full"].map(side => {
+        const street = controller.getSideStreet(side);
+        return street ? {
+          side, ticker: street.ticker, loaded: street.loaded,
+          pending: Object.keys(street.lineManager || {}).length,
+          blocks: street.blockchain ? street.blockchain.length : 0,
+          buses: street.buses ? street.buses.children.entries.length : 0
+        } : null;
+      }).filter(Boolean) : [];
+      return { game: !!game, controller: !!controller, streets };
+    });
     await page.screenshot({ path: path.join(output, "btc-eth-replay.png"), fullPage: true });
-    fs.writeFileSync(path.join(output, "diagnostics.json"), JSON.stringify({ dimensions, errors }, null, 2));
+    fs.writeFileSync(path.join(output, "diagnostics.json"), JSON.stringify({ dimensions, sceneState, errors }, null, 2));
     assert(dimensions.width >= 320 && dimensions.height >= 320, "Canvas dimensions are too small");
     assert.strictEqual(errors.length, 0, errors.join("\n"));
-    console.log("Browser render smoke test passed. Canvas:", dimensions);
+    console.log("Browser render smoke test passed.", JSON.stringify({ dimensions, sceneState }));
   } finally {
     if (browser) await browser.close();
     await new Promise(resolve => server.close(resolve));
