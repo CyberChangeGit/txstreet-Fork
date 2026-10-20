@@ -6,7 +6,7 @@
 export const replayEnabled = process.env.VUE_APP_REPLAY === "true";
 
 const BASE_HEIGHT = { BTC: 840000, ETH: 20000000 };
-const START_TIME = 1760000000;
+const nowSeconds = () => Math.floor(Date.now() / 1000);
 const supported = ["BTC", "ETH"];
 const sockets = new Set();
 const makeHash = (ticker, counter) =>
@@ -26,7 +26,7 @@ function transaction(ticker, index) {
       gp: 3000000000,
       mfpg: (3 + (index % 6)) * 1000000000,
       mpfpg: (1 + (index % 3)) * 1000000000,
-      t: START_TIME + index * 3,
+      t: nowSeconds(),
       tot: 0.01
     };
   }
@@ -35,7 +35,7 @@ function transaction(ticker, index) {
     s: 230 + (index % 5) * 80,
     rs: 170 + (index % 5) * 60,
     spb: 3 + (index % 16) * 2,
-    t: START_TIME + index * 7,
+    t: nowSeconds(),
     tot: 0.003
   };
 }
@@ -51,13 +51,14 @@ function getState(ticker) {
         const tx = transaction(ticker, 500 + i * 4 + j);
         full[tx.tx] = tx;
       }
+      const blockTime = nowSeconds() - (2 - i) * (ticker === "ETH" ? 12 : 600) - 3;
       initial.push({
         coin: ticker,
         hash: makeHash(ticker, 100 + i),
         parentHash: makeHash(ticker, 99 + i),
         height: height + i,
-        time: START_TIME + i * (ticker === "ETH" ? 12 : 600),
-        inserted: START_TIME + i * (ticker === "ETH" ? 12 : 600),
+        time: blockTime,
+        inserted: blockTime,
         size: 850000, s: 850000,
         gu: 14000000, gl: 30000000, baseFee: 2000000000,
         txFull: full, txs: 4
@@ -189,8 +190,8 @@ class ReplaySocket {
         hash: makeHash(this.ticker, 40000 + current.seq),
         parentHash: previous.hash,
         height: previous.height + 1,
-        time: previous.time + (this.ticker === "BTC" ? 600 : 12),
-        inserted: previous.time + (this.ticker === "BTC" ? 600 : 12),
+        time: nowSeconds(),
+        inserted: nowSeconds(),
         size: 800000, s: 800000,
         gu: 14000000, gl: 30000000, baseFee: 2000000000,
         txFull: full, txs: included.length
