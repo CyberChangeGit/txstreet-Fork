@@ -1,51 +1,66 @@
-# BlockchainTruth: TxStreet baseline reproduction
+# BlockchainTruth: isolated TxStreet BTC/ETH replay
 
-Status: experimental. This branch does not serve production traffic. The original `main` branch is preserved.
+**Status:** Development proof of concept. This is not production software or live blockchain data. The upstream source remains intact on `main`.
 
-## Reproducible build
+## Completed
 
-See `.github/workflows/blockchaintruth-baseline.yml` for a bounded compatibility build on Node 16.20.2 with the original `yarn.lock`. Node 16 is end-of-life and is **not** an endorsed runtime for new deployments.
+- Created a separate `blockchaintruth/baseline` branch from the original TxStreet default-branch revision.
+- Retained the original Vue 2, Phaser 3 and legacy animation/sprite assets for behavioral baseline testing.
+- Added `src/replay/replay.js`, an opt-in mock data transport that supplies BTC and ETH pending transactions, new blocks, statistics and legacy Socket.IO responses.
+- Enabled the mock at the entry point and Socket.IO adapter only when `VUE_APP_REPLAY=true`.
+- Added `.env.replay`, with self-contained, nonproduction endpoint settings.
+- Blocked unknown `fetch` requests in replay mode and suppressed the legacy onboarding/hardware-wallet promotions.
+- Added a prominently visible synthetic-data warning.
+- Added a network-independent replay transport contract test and an automated headless Chrome screenshot/Phaser smoke test.
+- GitHub Actions builds the original frontend, builds replay mode, uploads compiled assets and captures a screenshot/diagnostics.
 
-The build explicitly supplies local placeholder endpoints instead of the legacy TxStreet and third-party servers. This proves compilation only, **not** that the application is operational or that transactions are rendered correctly.
+## Developer startup (isolated)
 
-## Source components to preserve
+Use a development machine or container with Node.js 16.20.2 **only** for reproducing the historical frontend; Node 16 is unsupported and must not be used for a public deployment.
 
-- `src/components/street-controller.js`: Phaser scenes, atlas loading, screen layout and selection.
-- `src/components/street.js`: visualization state and source-specific transactions.
-- `src/components/game-objects/person.js`: animated character movement.
-- `src/components/game-objects/bus.js`: animated block movement.
-- `src/components/utils/index.js`: Socket.IO subscriptions, REST retrieval and routing.
-- `public/static/img/`: original sprite sheets, fonts and associated atlas metadata.
+```bash
+git clone https://github.com/CyberChangeGit/txstreet-Fork.git
+cd txstreet-Fork
+git switch blockchaintruth/baseline
+npm install -g yarn@1.22.22
+yarn install --frozen-lockfile
+node tests/replay-contract.test.cjs
+yarn serve --mode replay
+```
 
-## Verified legacy interface
+In a browser open `http://localhost:8080/v/btc-eth/launch` (adjust the port if occupied). An explicit top-of-page warning says that events are synthetic. The replay uses no BTC/ETH nodes, MongoDB, Redis, or live TxStreet REST/WebSocket services.
 
-Frontend environment variables:
-- `VUE_APP_REST_API`
-- `VUE_APP_WS_SERVER`
-- `VUE_APP_REST_API_ETH`
-- `VUE_APP_WS_SERVER_ETH`
-- `VUE_APP_MOONHEADS_SERVER`
-- `VUE_APP_STORAGE_URL`
+This is a demonstration event stream, not an accurate historic or production blockchain trace. Transaction fees, block times, inclusion ordering, processing capacity and finality are not measurements and must not be presented as such.
 
-REST calls include `/static/live/houses-BTC`, `/static/live/pendingTxs-BTC`, and `/static/blocks/BTC/{hash}`. Socket.IO client emits `join-room` with `BTC-transactions` or `BTC-blocks`. Server emits `tx` and `block`. Statistics use `fetch-stat` and chain-specific keys. The protocol requires further end-to-end verification before it is treated as a stable contract.
+## Reproducible build and visual test
 
-## Immediate development sequence
+See `.github/workflows/blockchaintruth-baseline.yml`. The action:
+1. Builds the legacy frontend from the original Yarn lockfile.
+2. Executes `node tests/replay-contract.test.cjs`.
+3. Builds the frontend with `VUE_APP_REPLAY=true`.
+4. Launches headless Google Chrome, navigates to `/v/btc-eth/launch`, and requires real BTC/ETH Phaser scenes containing transactions and blocks.
+5. Uploads the production assets as `blockchaintruth-synthetic-replay` and a screenshot/diagnostics as `blockchaintruth-rendering-smoke`.
 
-1. Check the baseline GitHub Action build result. If failure occurs, capture the exact failing dependency or compiler error.
-2. Add a dedicated `replay` mode and use a deterministic BTC/ETH transaction fixture. It should require no API keys, subscriptions, blockchain nodes, MongoDB, or Redis.
-3. Validate person creation, prioritization, bus boarding, new blocks and transaction removal using the fixture. Capture actual screenshots and browser console errors.
-4. Repair scene layout, retina scaling and atlas/render glitches against a fixed fixture.
-5. Extract a typed normalized transaction event adapter, **after** existing behavior is reproduced.
-6. Create a standalone Vue 3/Vite shell or migrate progressively, with the Phaser scene isolated from UI state.
-7. Add authenticated, rate-limited and provenance-tracked BTC and ETH feeds; distinguish node-observed mempool transactions, block inclusion and network-specific finality.
-8. Perform a dependency/security/license review before public hosting. Preserve the original MIT copyright and notices. Review processor ISC declaration and separately licensed AGPL community code.
+## Integration boundaries
 
-## Known unresolved issues
+- `src/components/street-controller.js`: street layout, Phaser texture atlases, scene activation.
+- `src/components/street.js`: transaction state, boarding, movement and block handling.
+- `src/components/game-objects/person.js`: person movement.
+- `src/components/game-objects/bus.js`: buses representing blocks.
+- `src/components/utils/index.js`: REST and Socket.IO client adapter.
+- `src/replay/replay.js`: isolated synthetic data/event adapter.
+- `public/static/img/`: sprite sheets, assets and atlas metadata.
 
-- The legacy application calls multiple third-party endpoints and has optional advertisements/wallet integrations; disabling them with build-time env variables is insufficient to guarantee no runtime requests.
-- Node.js 16 and Vue 2 are obsolete; the current CI baseline is deliberately quarantined.
-- Original processor setup examples show URI formats different from its validation checks.
-- The original processor uses MongoDB, Redis, RPC nodes and background jobs. A frontend build does not exercise them.
-- The user's community-reference deployment at txcity.io may use patched rendering code; no equivalence to this source revision has been verified.
+Legacy routes include `/static/live/houses-BTC`, `/static/live/pendingTxs-BTC`, and `/static/blocks/BTC/{hash}`. Socket.IO rooms include `BTC-transactions`, `BTC-blocks` and related ETH equivalents. Event names include `tx`, `block`, `latestblocks`, `fetch-stat` and `stat-updates`.
 
-**No change from this branch should be merged to the default branch until the UI runs in replay mode and passes human review.**
+## Outstanding work before a public BlockchainTruth launch
+
+- Inspect saved Chrome screenshots across resolutions and verify animation over time. Fix any remaining warnings, stale graphics, bus sprites or visual regressions.
+- Remove unrelated onboarding, wallet connections, advertising and NFT code, retaining original copyright/license notices.
+- Add a versioned, typed, network-agnostic event interface. Verify block-event semantics against real chain-specific data.
+- Replace Vue 2 / Vue CLI 4 and the outdated Phaser beta in small, independently testable steps.
+- Run a dependency/security/licensing audit. The upstream frontend includes an MIT license. Community sources may impose AGPL obligations.
+- Add archival/replay data with provenance and explicit separation between observation, simulation, and network-finality claims.
+- Deploy a private preview for visual review before authorizing a public BlockchainTruth.org release.
+
+No changes should be merged into `main` until the replay and browser tests pass and the source has undergone review.
