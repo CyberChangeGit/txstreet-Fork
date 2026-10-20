@@ -1,3 +1,4 @@
+import { replayEnabled, createReplaySocket } from "../replay/replay";
 import { config, moonheadNames, additionalSheets, enabledConfig } from "../config.js";
 import { fds, default as i18n } from "../../i18n";
 import { add } from "date-fns";
@@ -108,7 +109,7 @@ export const loadBlock = async (ticker, hash, retries = 0) => {
 	}
 
 	if (retries > 1) return false;
-	if (retries) return loadBlockCloudFlare(ticker, hash);
+	if (retries) return replayEnabled ? false : loadBlockCloudFlare(ticker, hash);
 
 	let fileUrl = `${(process.env?.["VUE_APP_REST_API_" + ticker] || process.env.VUE_APP_REST_API)}/static/blocks/${ticker}/${hash}`;
 
@@ -249,7 +250,7 @@ export function getSocket(coinConfigOrTicker = false) {
 	if (window.txStreetSockets[socketTicker].socket !== null) {
 		return window.txStreetSockets[socketTicker];
 	}
-	window.txStreetSockets[socketTicker].socket = io(process.env?.["VUE_APP_WS_SERVER_" + socketTicker] || process.env.VUE_APP_WS_SERVER, {
+	window.txStreetSockets[socketTicker].socket = replayEnabled ? createReplaySocket(socketTicker) : io(process.env?.["VUE_APP_WS_SERVER_" + socketTicker] || process.env.VUE_APP_WS_SERVER, {
 		upgrade: true,
 		transports: ["websocket"],
 		//transports: ["websocket", "polling"],
